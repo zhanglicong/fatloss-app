@@ -8,20 +8,20 @@ class CreateWorkoutPlansTable extends Migration
 {
     public function up()
     {
-        Schema::create('plans', function (Blueprint $table) {
+        Schema::create('workout_plans', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->enum('plan_type',['workout','meal'])->default('workout');
-            $table->date('date');
-            $table->json('content'); // 训练步骤或食谱 JSON
+            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->string('title'); // 计划标题
+            $table->text('description')->nullable(); // 计划描述
+            $table->string('target_muscle')->nullable(); // 目标肌群，如胸、腿、腹等
+            $table->integer('duration')->nullable(); // 持续天数
+            $table->json('schedule')->nullable(); // 每天的训练安排（JSON）
             $table->timestamps();
-
-            $table->unique(['user_id','plan_type','date']);
         });
     }
 
     public function down()
     {
-        Schema::dropIfExists('plans');
+        Schema::dropIfExists('workout_plans');
     }
 }
