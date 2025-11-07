@@ -1,8 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\DietPlanController;
-use App\Http\Controllers\Api\WorkoutPlanController;
+use App\Http\Controllers\Api\PlanController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,17 +26,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/update', [UserController::class, 'updateProfile']);
     Route::post('/logout', [UserController::class, 'logout']);
 
-    // 健身计划
-    Route::get('/workout-plans', [WorkoutPlanController::class, 'index']);
-    Route::post('/workout-plans', [WorkoutPlanController::class, 'store']);
-    Route::get('/workout-plans/{id}', [WorkoutPlanController::class, 'show']);
-    Route::put('/workout-plans/{id}', [WorkoutPlanController::class, 'update']);
-    Route::delete('/workout-plans/{id}', [WorkoutPlanController::class, 'destroy']);
-
-    // 饮食计划
-    Route::get('/diet-plans', [DietPlanController::class, 'index']);
-    Route::post('/diet-plans', [DietPlanController::class, 'store']);
-    Route::get('/diet-plans/{id}', [DietPlanController::class, 'show']);
-    Route::put('/diet-plans/{id}', [DietPlanController::class, 'update']);
-    Route::delete('/diet-plans/{id}', [DietPlanController::class, 'destroy']);
+    // 通用计划API
+    Route::get('/plans', [PlanController::class, 'index']);
+    Route::post('/plans', [PlanController::class, 'store']);
+    Route::post('/plans/generate', [PlanController::class, 'generate']); // AI生成计划
+    Route::get('/plans/{id}', [PlanController::class, 'show']);
+    Route::put('/plans/{id}', [PlanController::class, 'update']);
+    Route::delete('/plans/{id}', [PlanController::class, 'destroy']);
 });

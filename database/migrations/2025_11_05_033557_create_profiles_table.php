@@ -18,6 +18,7 @@ class CreateProfilesTable extends Migration
             $table->enum('activity_level',['sedentary','light','moderate','active','very_active'])->default('light');
             $table->decimal('target_weight_kg',5,2)->nullable();
             $table->date('target_date')->nullable();
+            $table->json('preferences')->nullable(); // 用户偏好设置
             $table->timestamps();
         });
     }
