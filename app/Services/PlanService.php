@@ -3,9 +3,17 @@ namespace App\Services;
 
 use App\Models\Plan;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class PlanService
 {
+    protected $deepSeekService;
+
+    public function __construct(DeepSeekService $deepSeekService)
+    {
+        $this->deepSeekService = $deepSeekService;
+    }
+
     /**
      * 生成通用AI计划
      *
@@ -16,25 +24,79 @@ class PlanService
      */
     public function generatePlan($user, $type, $preferences = []): array
     {
+        // 使用DeepSeek API生成计划内容
+        $profile = $user->profile ? $user->profile->toArray() : [];
+        $aiGeneratedContent = $this->deepSeekService->generatePlanContent($type, $preferences, $profile);
+
+        // 如果AI生成成功，解析返回的内容
+        if ($aiGeneratedContent) {
+            $parsedContent = $this->parseAIResponse($aiGeneratedContent);
+            if ($parsedContent) {
+                return $parsedContent;
+            }
+        }
+
+        // 如果AI生成失败，使用原来的逻辑作为备选方案
+        return $this->generatePlanFallback($type, $preferences);
+    }
+
+    /**
+     * 解析AI返回的内容
+     *
+     * @param string $content
+     * @return array|null
+     */
+    protected function parseAIResponse(string $content): ?array
+    {
+        // 尝试解析JSON
+        $data = json_decode($content, true);
+        
+        if (json_last_error() === JSON_ERROR_NONE && is_array($data)) {
+            // 确保必要的字段存在
+            if (isset($data['title']) && isset($data['details'])) {
+                return [
+                    'title' => $data['title'] ?? 'AI生成计划',
+                    'description' => $data['description'] ?? '由AI生成的个性化计划',
+                    'type' => $data['type'] ?? 'generic',
+                    'start_date' => $data['start_date'] ?? Carbon::today()->format('Y-m-d'),
+                    'end_date' => $data['end_date'] ?? Carbon::today()->addDays(7)->format('Y-m-d'),
+                    'details' => $data['details'] ?? []
+                ];
+            }
+        }
+
+        Log::warning('Failed to parse AI response', ['content' => $content]);
+        return null;
+    }
+
+    /**
+     * 备选计划生成方法（当AI生成失败时使用）
+     *
+     * @param string $type
+     * @param array $preferences
+     * @return array
+     */
+    protected function generatePlanFallback(string $type, array $preferences): array
+    {
         // 根据不同类型生成不同的计划
         switch ($type) {
             case 'study':
-                return $this->generateStudyPlan($user, $preferences);
+                return $this->generateStudyPlan($preferences);
             case 'travel':
-                return $this->generateTravelPlan($user, $preferences);
+                return $this->generateTravelPlan($preferences);
             case 'project':
-                return $this->generateProjectPlan($user, $preferences);
+                return $this->generateProjectPlan($preferences);
             case 'habit':
-                return $this->generateHabitPlan($user, $preferences);
+                return $this->generateHabitPlan($preferences);
             default:
-                return $this->generateGenericPlan($user, $type, $preferences);
+                return $this->generateGenericPlan($type, $preferences);
         }
     }
 
     /**
      * 生成学习计划
      */
-    protected function generateStudyPlan($user, $preferences): array
+    protected function generateStudyPlan($preferences): array
     {
         $topics = $preferences['topics'] ?? [];
         $duration = $preferences['duration'] ?? 7; // 默认7天
@@ -72,7 +134,7 @@ class PlanService
     /**
      * 生成旅行计划
      */
-    protected function generateTravelPlan($user, $preferences): array
+    protected function generateTravelPlan($preferences): array
     {
         $destination = $preferences['destination'] ?? '未指定目的地';
         $duration = $preferences['duration'] ?? 3;
@@ -108,7 +170,7 @@ class PlanService
     /**
      * 生成项目计划
      */
-    protected function generateProjectPlan($user, $preferences): array
+    protected function generateProjectPlan($preferences): array
     {
         $projectName = $preferences['project_name'] ?? '未命名项目';
         $deadline = $preferences['deadline'] ?? Carbon::today()->addWeeks(2)->format('Y-m-d');
@@ -169,7 +231,7 @@ class PlanService
     /**
      * 生成习惯养成计划
      */
-    protected function generateHabitPlan($user, $preferences): array
+    protected function generateHabitPlan($preferences): array
     {
         $habits = $preferences['habits'] ?? [];
         $duration = $preferences['duration'] ?? 21; // 默认21天习惯养成
@@ -204,7 +266,7 @@ class PlanService
     /**
      * 生成通用计划
      */
-    protected function generateGenericPlan($user, $type, $preferences): array
+    protected function generateGenericPlan($type, $preferences): array
     {
         $duration = $preferences['duration'] ?? 7;
         
